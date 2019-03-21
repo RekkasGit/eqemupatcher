@@ -15,7 +15,7 @@ namespace eqemupatcher.filelistceator
 
 
             List<string> rootDirectoryToIgnore = new List<string>() { "Logs", "mozilla", "userdata" };
-            List<string> rootFilesToIgnore = new List<string>() { "filelist.yml", "filelist.ver" };
+            HashSet<string> filesToIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "filelist.yml", "filelist.ver", "Thumbs.db" };
           
 
              Console.Write("Please enter a directory to work on:");
@@ -37,17 +37,7 @@ namespace eqemupatcher.filelistceator
             List<DirectoryInfo> foldersInCurrentDirectory = rootdirectory.GetDirectories().ToList();
 
 
-            List<FileInfo> fileListClean = new List<FileInfo>();
-
-            foreach( var file in filelist)
-            {
-                if(!rootFilesToIgnore.Contains(file.Name))
-                {
-                    fileListClean.Add(file);
-                }
-            }
-
-            filelist = fileListClean;
+          
             
 
             foreach(DirectoryInfo dir in foldersInCurrentDirectory)
@@ -60,9 +50,20 @@ namespace eqemupatcher.filelistceator
                 WalkDirectory(filelist, dir);
 
             }
+            List<FileInfo> fileListClean = new List<FileInfo>();
 
+            foreach (var file in filelist)
+            {
+              
+                if (!filesToIgnore.Contains(file.Name))
+                {
+                    fileListClean.Add(file);
+                }
+            }
+
+            filelist = fileListClean;
             //have all the files , lets start compuiting some MD5's!
-           System.Collections.Concurrent.ConcurrentDictionary<string, EQEmu_Patcher.Models.FileEntry> modelList = new System.Collections.Concurrent.ConcurrentDictionary<string, EQEmu_Patcher.Models.FileEntry>();
+            System.Collections.Concurrent.ConcurrentDictionary<string, EQEmu_Patcher.Models.FileEntry> modelList = new System.Collections.Concurrent.ConcurrentDictionary<string, EQEmu_Patcher.Models.FileEntry>();
 
             Console.WriteLine("Processing MD5's please wait....");
            System.Threading.Tasks.Parallel.ForEach(filelist, (x)=>{

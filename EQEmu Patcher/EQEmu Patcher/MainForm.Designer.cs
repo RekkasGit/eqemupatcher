@@ -52,7 +52,7 @@
             this.btnStart.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnStart.BackColor = System.Drawing.SystemColors.ButtonFace;
             this.btnStart.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
-            this.btnStart.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Blue;
+            this.btnStart.FlatAppearance.MouseDownBackColor = System.Drawing.Color.RoyalBlue;
             this.btnStart.FlatAppearance.MouseOverBackColor = System.Drawing.Color.DeepSkyBlue;
             this.btnStart.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnStart.Location = new System.Drawing.Point(-2, 511);

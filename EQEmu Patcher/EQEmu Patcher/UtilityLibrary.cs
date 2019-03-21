@@ -8,6 +8,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
+using System.Diagnostics;
 
 namespace EQEmu_Patcher
 {
@@ -173,9 +174,14 @@ namespace EQEmu_Patcher
             }
         }
 
-        public static System.Diagnostics.Process StartEverquest()
+        public static System.Diagnostics.Process StartEverquest(string path)
         {
-            return System.Diagnostics.Process.Start("eqgame.exe", "patchme");
+            var startInfo = new ProcessStartInfo();
+            startInfo.WorkingDirectory = path;
+            startInfo.Arguments = "patchme";
+            startInfo.FileName = Path.Combine(path, "eqgame.exe");
+
+            return System.Diagnostics.Process.Start(startInfo);
         }
 
 

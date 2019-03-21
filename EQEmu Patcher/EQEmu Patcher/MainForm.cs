@@ -27,7 +27,7 @@ namespace EQEmu_Patcher
          ****/
 
         public static string serverName = "Echoes of Norrath";
-        public static string _filelistUrl = "http://www.echoesofnorrath.com:10000/eqemu_client";
+        public static string _filelistUrl = "http://www.echoesofnorrath.com/eqemu_client";
         public static bool defaultAutoPlay = false; //When a user runs this first time, what should Autoplay be set to?
         public static bool defaultAutoPatch = false; //When a user runs this first time, what should Autopatch be set to?
         HashSet<string> _rootDirectoy_INIs_To_NOT_Ignore = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { @"\eqlsClient.ini", @"\VoiceChat.ini", @"\eqlsUIConfig.ini" };
@@ -43,7 +43,6 @@ namespace EQEmu_Patcher
         System.Diagnostics.Process process;
         System.Collections.Specialized.StringCollection log = new System.Collections.Specialized.StringCollection();
 
-        bool isLoading;
         bool isNeedingPatch;
         private Dictionary<VersionTypes, ClientVersion> clientVersions = new Dictionary<VersionTypes, ClientVersion>();
 
@@ -64,6 +63,8 @@ namespace EQEmu_Patcher
 
         private void Init()
         {
+            _currentDirectory = Path.Combine(_currentDirectory, "everquest_rof2");
+
             System.IO.DirectoryInfo baseDir = new DirectoryInfo(_currentDirectory);
             _currentDirectory = baseDir.FullName;
 
@@ -79,34 +80,15 @@ namespace EQEmu_Patcher
                 this.Height = 550;
             }
             buildClientVersions();
-            IniLibrary.Load();
             detectClientVersion();
             Boolean downloadFileList = false;
-            if (IniLibrary.instance.ClientVersion == VersionTypes.Unknown)
-            {
-                detectClientVersion();
-                if (currentVersion == VersionTypes.Unknown)
-                {
-                    this.Close();
-                }
-                IniLibrary.instance.ClientVersion = currentVersion;
-                IniLibrary.Save();
-            }
-            string suffix = "unk";
-            if (currentVersion == VersionTypes.Titanium) suffix = "tit";
-            if (currentVersion == VersionTypes.Underfoot) suffix = "und";
-            if (currentVersion == VersionTypes.Seeds_Of_Destruction) suffix = "sod";
-            if (currentVersion == VersionTypes.Broken_Mirror) suffix = "bro";
-            if (currentVersion == VersionTypes.Secrets_Of_Feydwer) suffix = "sof";
-            if (currentVersion == VersionTypes.Rain_Of_Fear || currentVersion == VersionTypes.Rain_Of_Fear_2) suffix = "rof";
-
-
+           
             this.Text = serverName;
 
 
             string webUrl = _filelistUrl + "/filelist.ver";
 
-            System.IO.FileInfo localFileVer = new FileInfo("filelist.ver");
+            System.IO.FileInfo localFileVer = new FileInfo(Path.Combine(_currentDirectory,"filelist.ver"));
 
             if (localFileVer.Exists)
             {
@@ -145,7 +127,7 @@ namespace EQEmu_Patcher
                 _fileListVerResponse = DownloadFile(webUrl);
             }
 
-            btnStart.Font = new Font("Forte", 24, FontStyle.Bold);
+            btnStart.Font = new Font("Times New Roman", 24, FontStyle.Bold);
             if (downloadFileList)
             {
                 isNeedingPatch = true;
@@ -155,7 +137,7 @@ namespace EQEmu_Patcher
             }
             else
             {
-                btnStart.BackColor = Color.ForestGreen;
+                btnStart.BackColor = Color.CornflowerBlue;
                 btnStart.Text = "Play";
             }
            
@@ -183,7 +165,7 @@ namespace EQEmu_Patcher
             try
             {
 
-                var hash = UtilityLibrary.GetEverquestExecutableHash(AppDomain.CurrentDomain.BaseDirectory);
+                var hash = UtilityLibrary.GetEverquestExecutableHash(_currentDirectory);
                 if (hash == "")
                 {
                     MessageBox.Show("Please run this patcher in your Everquest directory.");
@@ -274,12 +256,13 @@ namespace EQEmu_Patcher
             if (isNeedingPatch)
             {
                 StartPatch();
+                return;
             }
           
 
             try
             {
-                process = UtilityLibrary.StartEverquest();
+                process = UtilityLibrary.StartEverquest(_currentDirectory);
                 if (process != null) this.Close();
                 else MessageBox.Show("The process failed to start");
             }
@@ -308,13 +291,17 @@ namespace EQEmu_Patcher
 
         private void StartPatch()
         {
+            if (isPatching) return;
+            isPatching = true;
+            btnStart.Text = "Cancel";
+
 
             //first lets download the file list
             string fileListURL  = _filelistUrl + "/filelist.yml";
 
 
             byte[] fileListResponse = null;
-
+            LogEvent("Downloading file list from patch server...");
             try
             {
                 fileListResponse = DownloadFile(fileListURL);
@@ -326,8 +313,9 @@ namespace EQEmu_Patcher
                 btnStart.Text = "Patch";
                 return;
             }
+            LogEvent("Download complete. Size:"+fileListResponse.Length);
 
-            if(fileListResponse == null || fileListResponse.Length==0)
+            if (fileListResponse == null || fileListResponse.Length==0)
             {
                 MessageBox.Show("Empty responsefrom patch server. Try again later.");
                 isPatching = false;
@@ -350,29 +338,30 @@ namespace EQEmu_Patcher
                 btnStart.Text = "Patch";
                 return;
             }
-        
+
             //got the response, now lets see what is different.
 
-            if (isPatching) return;
-            isPatching = true;
-            btnStart.Text = "Cancel";
 
 
             //lets load the current one if it exists.
 
-            FileInfo localFileListFile = new FileInfo("filelist.yml");
+            FileInfo localFileListFile = new FileInfo(Path.Combine(_currentDirectory, "filelist.yml"));
 
             FileList localFileList = null;
             if (localFileListFile.Exists)
             {
+                LogEvent("Loading local file compairson file....");
+
                 //it exist locally lets load it up
                 localFileList = deserializer.Deserialize<FileList>(System.IO.File.ReadAllText(localFileListFile.FullName));
 
             }
             else
             {
+                LogEvent("Local file compairson file not found creating new one. \r\nThis may take a bit of time.....");
+
                 //we have no local file list, we must create one.
-             
+
                 DirectoryInfo rootDirectory = new DirectoryInfo(_currentDirectory);
 
                 List<FileInfo> filelist = rootDirectory.GetFiles().ToList();
@@ -404,25 +393,34 @@ namespace EQEmu_Patcher
                 }
                 System.Collections.Concurrent.ConcurrentDictionary<string, EQEmu_Patcher.Models.FileEntry> modelList = new System.Collections.Concurrent.ConcurrentDictionary<string, EQEmu_Patcher.Models.FileEntry>();
 
-                Console.WriteLine("Processing MD5's please wait....");
-                System.Threading.Tasks.Parallel.ForEach(filelist, (x) => {
+                LogEvent("Processing MD5's please wait....");
+               
+                foreach(FileInfo x in filelist)
+                {
+                    LogEvent("MD5ing :"+x.FullName);
                     EQEmu_Patcher.Models.FileEntry entry = new EQEmu_Patcher.Models.FileEntry();
                     entry.date = x.LastWriteTimeUtc.ToString();
-                    entry.name = @"\"+x.FullName.Replace(rootDirectory.FullName, "");
+                    entry.name = x.FullName.Replace(rootDirectory.FullName, "");
                     entry.size = (int)x.Length;
                     entry.md5 = checkMD5(x.FullName);
                     modelList.TryAdd(entry.name, entry);
-                });
+                }
 
                 localFileList = new FileList();
                 localFileList.downloads = modelList.Values.ToList();
 
+                LogEvent("In memory file compairson created. Going to next step");
+
+
             }
+
+
             //need to create lookups of local and external to determine what to do
             Dictionary<string, FileEntry> localListHash = localFileList.downloads.ToDictionary(x => x.name, x=>x, StringComparer.OrdinalIgnoreCase);
             Dictionary<string, FileEntry> externalListHash = externalFileList.downloads.ToDictionary(x => x.name, x => x, StringComparer.OrdinalIgnoreCase);
 
 
+            LogEvent("Finding files that need updating...");
 
             //we now loop to see what is different to get, then loop the other way to see what we need to delete.
             foreach (KeyValuePair<string, FileEntry> pair in externalListHash)
@@ -513,13 +511,17 @@ namespace EQEmu_Patcher
                         fileToSaveInfo.Directory.Create();
                     }
                     System.IO.File.Delete(fileNameToSave);
-                    System.IO.File.WriteAllBytes(System.IO.Path.Combine(_currentDirectory, fileName.TrimStart(Path.DirectorySeparatorChar)), filePayload);
+                    LogEvent("Replacing file file:" + pair.Value.name);
 
+                    System.IO.File.WriteAllBytes(System.IO.Path.Combine(_currentDirectory, fileName.TrimStart(Path.DirectorySeparatorChar)), filePayload);
+                 
                 }
-              
+
 
             }
             //see what should be deleted.
+            LogEvent("Finding files that need Deleting...");
+
             foreach (KeyValuePair<string, FileEntry> pair in localListHash)
             {
              
@@ -567,6 +569,7 @@ namespace EQEmu_Patcher
 
                 if (!externalListHash.ContainsKey(pair.Value.name))
                 {
+                    LogEvent("Deleteing file:"+pair.Value.name);
 
                     //we don't have this file. delete
                     System.IO.File.Delete(System.IO.Path.Combine(_currentDirectory, pair.Value.name.TrimStart(Path.DirectorySeparatorChar))); 
@@ -581,9 +584,10 @@ namespace EQEmu_Patcher
             System.IO.File.WriteAllBytes(fileListFileName, fileListResponse);
             System.IO.File.Delete(fileListVerFileName);
             System.IO.File.WriteAllBytes(fileListVerFileName, _fileListVerResponse);
-            btnStart.BackColor = Color.LawnGreen;
+            btnStart.BackColor = Color.CornflowerBlue;
             btnStart.Text = "Play";
-
+            isNeedingPatch = false;
+            LogEvent("Patching complete, press play to start.");
         }
         static void WalkDirectory(List<FileInfo> filelist, DirectoryInfo currentDirectory)
         {
@@ -604,110 +608,6 @@ namespace EQEmu_Patcher
                 }
             }
         }
-        //private void StartPatch()
-        //{
-        //    if (isPatching) return;
-        //    isPatching = true;
-        //    btnStart.Text = "Cancel";
-
-        //    txtList.Text = "Patching...";
-        //    FileList filelist;
-
-        //    using (var input = File.OpenText("filelist.yml"))
-        //    {
-        //        var deserializerBuilder = new DeserializerBuilder().WithNamingConvention(new CamelCaseNamingConvention());
-
-        //        var deserializer = deserializerBuilder.Build();
-
-        //        filelist = deserializer.Deserialize<FileList>(input);
-        //    }
-        //    int totalBytes = 0;
-        //    List<FileEntry> filesToDownload = new List<FileEntry>();
-        //    foreach (var entry in filelist.downloads)
-        //    {
-        //        Application.DoEvents();
-        //        var path = entry.name.Replace("/", "\\");
-        //        //See if file exists.
-        //        if (!File.Exists(path))
-        //        {
-        //            //Console.WriteLine("Downloading: "+ entry.name);
-        //            filesToDownload.Add(entry);
-        //            if (entry.size < 1) totalBytes += 1;
-        //            else totalBytes += entry.size;
-        //        }
-        //        else
-        //        {
-        //            var md5 = UtilityLibrary.GetMD5(path);
-
-        //            if (md5.ToUpper() != entry.md5.ToUpper())
-        //            {
-        //                Console.WriteLine(entry.name + ": " + md5 + " vs " + entry.md5);
-        //                filesToDownload.Add(entry);
-        //                if (entry.size < 1) totalBytes += 1;
-        //                else totalBytes += entry.size;
-        //            }
-        //        }
-        //        Application.DoEvents();
-        //        if (!isPatching) { 
-        //            LogEvent("Patching cancelled.");
-        //            return;
-        //        }
-
-        //    }
-
-        //    if (filelist.deletes != null && filelist.deletes.Count > 0)
-        //    {
-        //        foreach (var entry in filelist.deletes)
-        //        {
-        //            if (File.Exists(entry.name))
-        //            {
-        //                LogEvent("Deleting " + entry.name + "...");
-        //                File.Delete(entry.name);
-        //            }
-        //            Application.DoEvents();
-        //            if (!isPatching)
-        //            {
-        //                LogEvent("Patching cancelled.");
-        //                return;
-        //            }
-        //        }
-        //    }
-
-        //    if (filesToDownload.Count == 0)
-        //    {
-        //        LogEvent("Up to date with patch "+filelist.version+".");
-        //        progressBar.Maximum = progressBar.Value = 1;
-        //        IniLibrary.instance.LastPatchedVersion = filelist.version;
-        //        IniLibrary.Save();
-        //        btnStart.BackColor = SystemColors.Control;
-        //        btnStart.Text = "Patch";
-        //        return;
-        //    }
-
-        //    LogEvent("Downloading " + totalBytes + " bytes for " + filesToDownload.Count + " files...");
-        //    int curBytes = 0;
-        //    progressBar.Maximum = totalBytes;
-        //    progressBar.Value = 0;
-        //    foreach (var entry in filesToDownload)
-        //    {
-        //        progressBar.Value = (curBytes > totalBytes) ? totalBytes : curBytes;
-        //        string url = filelist.downloadprefix + entry.name.Replace("\\", "/");
-        //        DownloadFile(url, entry.name);
-        //        curBytes += entry.size;
-        //        Application.DoEvents();
-        //        if (!isPatching)
-        //        {
-        //            LogEvent("Patching cancelled.");
-        //            return;
-        //        }
-        //    }
-        //    progressBar.Value = progressBar.Maximum;
-        //    LogEvent("Complete! Press Play to begin.");
-        //    IniLibrary.instance.LastPatchedVersion = filelist.version;
-        //    IniLibrary.Save();
-        //    btnStart.BackColor = SystemColors.Control;
-        //    btnStart.Text = "Patch";
-        //}
 
         private void LogEvent(string text)
         {
@@ -716,8 +616,9 @@ namespace EQEmu_Patcher
                 txtList.Visible = true;
                 splashLogo.Visible = false;
             }
-            Console.WriteLine(text);
+            // Console.WriteLine(text);
             txtList.AppendText(text + "\r\n");
+            Application.DoEvents();
         }
 
      
