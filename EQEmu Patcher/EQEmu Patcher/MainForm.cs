@@ -26,24 +26,18 @@ namespace EQEmu_Patcher
          * 
          ****/
 
-        public static string serverName = "Echoes of Norrath";
+        public static string _serverName = "Echoes of Norrath";
         public static string _filelistUrl = "http://www.echoesofnorrath.com/eqemu_client";
-        public static bool defaultAutoPlay = false; //When a user runs this first time, what should Autoplay be set to?
-        public static bool defaultAutoPatch = false; //When a user runs this first time, what should Autopatch be set to?
         HashSet<string> _rootDirectoy_INIs_To_NOT_Ignore = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { @"\eqlsClient.ini", @"\VoiceChat.ini", @"\eqlsUIConfig.ini" };
         HashSet<string> _rootDirectoryToIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { @"\Logs", @"\mozilla", @"\userdata", @"\lib" };
         HashSet<string> _rootFilesToIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { @"\eqemupatcher.exe", @"\eqemupatcher.exe.config", @"\eqemupatcher.pdb", @"\eqemupatcher.png", @"\eqemupatcher.yml", @"\filelist.yml", @"\filelist.ver", @"\texture.txt",@"\UIErrors.txt" };
-
         byte[] _fileListVerResponse;
-
-
         public static string _currentDirectory = System.AppDomain.CurrentDomain.BaseDirectory;
 
 
-        System.Diagnostics.Process process;
-        System.Collections.Specialized.StringCollection log = new System.Collections.Specialized.StringCollection();
-
-        bool isNeedingPatch;
+        System.Diagnostics.Process _process;
+        
+        bool _isNeedingPatch;
         private Dictionary<VersionTypes, ClientVersion> clientVersions = new Dictionary<VersionTypes, ClientVersion>();
 
         VersionTypes currentVersion;
@@ -68,7 +62,6 @@ namespace EQEmu_Patcher
             System.IO.DirectoryInfo baseDir = new DirectoryInfo(_currentDirectory);
             _currentDirectory = baseDir.FullName;
 
-            isLoading = true;
             txtList.Visible = false;
             splashLogo.Visible = true;
             if (this.Width < 432)
@@ -83,7 +76,7 @@ namespace EQEmu_Patcher
             detectClientVersion();
             Boolean downloadFileList = false;
            
-            this.Text = serverName;
+            this.Text = _serverName;
 
 
             string webUrl = _filelistUrl + "/filelist.ver";
@@ -116,7 +109,7 @@ namespace EQEmu_Patcher
 
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     MessageBox.Show("Failed to fetch filelist from " + webUrl);
                 }
@@ -130,7 +123,7 @@ namespace EQEmu_Patcher
             btnStart.Font = new Font("Times New Roman", 24, FontStyle.Bold);
             if (downloadFileList)
             {
-                isNeedingPatch = true;
+                _isNeedingPatch = true;
                 btnStart.BackColor = Color.Red;
                 btnStart.Text = "Patch";
                
@@ -140,22 +133,7 @@ namespace EQEmu_Patcher
                 btnStart.BackColor = Color.CornflowerBlue;
                 btnStart.Text = "Play";
             }
-           
-            isLoading = false;
-            if (File.Exists("eqemupatcher.png"))
-            {
-                byte[] imagebytes = System.IO.File.ReadAllBytes("eqemupatcher.png");
-                Bitmap bm;
-
-                using (System.IO.MemoryStream stream = new MemoryStream(imagebytes))
-                {
-                    bm = new Bitmap(stream, false);
-
-                }
-                splashLogo.Image = bm;
-
-                splashLogo.Load("eqemupatcher.png");
-            }
+          
 
         }
 
@@ -176,52 +154,38 @@ namespace EQEmu_Patcher
                 {
                     case "85218FC053D8B367F2B704BAC5E30ACC":
                         currentVersion = VersionTypes.Secrets_Of_Feydwer;
-                        splashLogo.Image = Properties.Resources.sof;
                         break;
                     case "859E89987AA636D36B1007F11C2CD6E0":
                     case "EF07EE6649C9A2BA2EFFC3F346388E1E78B44B48": //one of the torrented uf clients, used by B&R too
                         currentVersion = VersionTypes.Underfoot;
-                        splashLogo.Image = Properties.Resources.underfoot;
                         break;
                     case "A9DE1B8CC5C451B32084656FCACF1103": //p99 client
                     case "BB42BC3870F59B6424A56FED3289C6D4": //vanilla titanium
                         currentVersion = VersionTypes.Titanium;
-                        splashLogo.Image = Properties.Resources.titanium;
                         break;
                     case "368BB9F425C8A55030A63E606D184445":
                         currentVersion = VersionTypes.Rain_Of_Fear;
-                        splashLogo.Image = Properties.Resources.rof;
                         break;
                     case "240C80800112ADA825C146D7349CE85B":
                     case "A057A23F030BAA1C4910323B131407105ACAD14D": //This is a custom ROF2 from a torrent download
                         currentVersion = VersionTypes.Rain_Of_Fear_2;
-                        splashLogo.Image = Properties.Resources.rof;
                         break;
                     case "6BFAE252C1A64FE8A3E176CAEE7AAE60": //This is one of the live EQ binaries.
                     case "AD970AD6DB97E5BB21141C205CAD6E68": //2016/08/27
                         currentVersion = VersionTypes.Broken_Mirror;
-                        splashLogo.Image = Properties.Resources.brokenmirror;
                         break;
                     default:
                         currentVersion = VersionTypes.Unknown;
                         break;
+
                 }
+                splashLogo.Image = Properties.Resources.eqemupatcher;
+
                 if (currentVersion == VersionTypes.Unknown)
                 {
-                    if (MessageBox.Show("Unable to recognize the Everquest client in this directory, open a web page to report to devs?", "Visit", MessageBoxButtons.YesNo, MessageBoxIcon.Asterisk) == DialogResult.Yes)
-                    {
-                        System.Diagnostics.Process.Start("https://github.com/Xackery/eqemupatcher/issues/new?title=A+New+EQClient+Found&body=Hi+I+Found+A+New+Client!+Hash:+" + hash);
-                    }
-                    txtList.Text = "Unable to recognize the Everquest client in this directory, send to developers: " + hash;
+                    MessageBox.Show("Warning, Unable to recognize the Everquest client in this directory");
                 }
-                else
-                {
-                    //txtList.Text = "You seem to have put me in a " + clientVersions[currentVersion].FullName + " client directory";
-                }
-                
-                //MessageBox.Show(""+currentVersion);
-                
-                //txtList.Text += "\r\n\r\nIf you wish to help out, press the scan button on the bottom left and wait for it to complete, then copy paste this data as an Issue on github!";
+              
             }
             catch (UnauthorizedAccessException err)
             {
@@ -253,7 +217,7 @@ namespace EQEmu_Patcher
 
 
 
-            if (isNeedingPatch)
+            if (_isNeedingPatch)
             {
                 StartPatch();
                 return;
@@ -262,8 +226,8 @@ namespace EQEmu_Patcher
 
             try
             {
-                process = UtilityLibrary.StartEverquest(_currentDirectory);
-                if (process != null) this.Close();
+                _process = UtilityLibrary.StartEverquest(_currentDirectory);
+                if (_process != null) this.Close();
                 else MessageBox.Show("The process failed to start");
             }
             catch (Exception err)
@@ -306,7 +270,7 @@ namespace EQEmu_Patcher
             {
                 fileListResponse = DownloadFile(fileListURL);
             }
-            catch(Exception ex)
+            catch(Exception)
             {
                 MessageBox.Show("Cannot download file list from patch server. Try again later.");
                 isPatching = false;
@@ -331,7 +295,7 @@ namespace EQEmu_Patcher
                 externalFileList = deserializer.Deserialize<FileList>(System.Text.Encoding.UTF8.GetString(fileListResponse));
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 MessageBox.Show("Bad file list response from patch server. Try again later.");
                 isPatching = false;
@@ -340,11 +304,8 @@ namespace EQEmu_Patcher
             }
 
             //got the response, now lets see what is different.
-
-
-
+            
             //lets load the current one if it exists.
-
             FileInfo localFileListFile = new FileInfo(Path.Combine(_currentDirectory, "filelist.yml"));
 
             FileList localFileList = null;
@@ -488,7 +449,7 @@ namespace EQEmu_Patcher
                     {
                         filePayload= DownloadFile(_filelistUrl + fileName.Replace(@"\", @"/"));
                     }
-                    catch(Exception ex)
+                    catch(Exception)
                     {
                         MessageBox.Show("Could not download file :" + fileName + " try again later.");
                         isPatching = false;
@@ -516,8 +477,6 @@ namespace EQEmu_Patcher
                     System.IO.File.WriteAllBytes(System.IO.Path.Combine(_currentDirectory, fileName.TrimStart(Path.DirectorySeparatorChar)), filePayload);
                  
                 }
-
-
             }
             //see what should be deleted.
             LogEvent("Finding files that need Deleting...");
@@ -586,7 +545,7 @@ namespace EQEmu_Patcher
             System.IO.File.WriteAllBytes(fileListVerFileName, _fileListVerResponse);
             btnStart.BackColor = Color.CornflowerBlue;
             btnStart.Text = "Play";
-            isNeedingPatch = false;
+            _isNeedingPatch = false;
             LogEvent("Patching complete, press play to start.");
         }
         static void WalkDirectory(List<FileInfo> filelist, DirectoryInfo currentDirectory)
@@ -621,11 +580,6 @@ namespace EQEmu_Patcher
             Application.DoEvents();
         }
 
-     
-        private void MainForm_Shown(object sender, EventArgs e)
-        {
-           
-        }
     }
    
   

@@ -132,13 +132,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Resources\eqemupatcher.png" />
     <None Include="FodyWeavers.xml" />
     <Content Include="icon.ico" />
-    <None Include="Resources\brokenmirror.png" />
-    <None Include="Resources\rof.png" />
-    <None Include="Resources\sof.png" />
-    <None Include="Resources\underfoot.png" />
-    <None Include="Resources\titanium.png" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">

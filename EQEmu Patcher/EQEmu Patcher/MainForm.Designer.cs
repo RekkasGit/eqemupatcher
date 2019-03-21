@@ -66,7 +66,7 @@
             // splashLogo
             // 
             this.splashLogo.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.splashLogo.Image = global::EQEmu_Patcher.Properties.Resources.rof;
+            this.splashLogo.Image = global::EQEmu_Patcher.Properties.Resources.eqemupatcher;
             this.splashLogo.Location = new System.Drawing.Point(0, 0);
             this.splashLogo.Margin = new System.Windows.Forms.Padding(0);
             this.splashLogo.MinimumSize = new System.Drawing.Size(400, 450);
@@ -93,7 +93,6 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "EQEmu Patcher";
             this.Load += new System.EventHandler(this.MainForm_Load);
-            this.Shown += new System.EventHandler(this.MainForm_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.splashLogo)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();

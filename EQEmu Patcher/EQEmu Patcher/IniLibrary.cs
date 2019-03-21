@@ -11,50 +11,50 @@ namespace EQEmu_Patcher
 {
     class IniLibrary
     {
-        public static IniLibrary instance;
-        public string AutoPatch { get; set; }
-        public string AutoPlay { get; set; }
-        public VersionTypes ClientVersion { get; set; }
-        public string LastPatchedVersion { get; set; }
+        //public static IniLibrary instance;
+        //public string AutoPatch { get; set; }
+        //public string AutoPlay { get; set; }
+        //public VersionTypes ClientVersion { get; set; }
+        //public string LastPatchedVersion { get; set; }
 
         
-        public static void Save()
-        {
-            var serializerBuilder = new SerializerBuilder().WithNamingConvention(new CamelCaseNamingConvention());
-            var serializer = serializerBuilder.Build();
-            string body = serializer.Serialize(instance);
+        //public static void Save()
+        //{
+        //    var serializerBuilder = new SerializerBuilder().WithNamingConvention(new CamelCaseNamingConvention());
+        //    var serializer = serializerBuilder.Build();
+        //    string body = serializer.Serialize(instance);
             
-            Console.WriteLine(body);
-            File.WriteAllText(@"eqemupatcher.yml", body);
-        }
+        //    Console.WriteLine(body);
+        //    File.WriteAllText(@"eqemupatcher.yml", body);
+        //}
 
-        public static void Load()
-        {
-            try {
-                using (var input = File.OpenText("eqemupatcher.yml"))
-                {
-                    var deserializerBuilder = new DeserializerBuilder().WithNamingConvention(new CamelCaseNamingConvention());
+        //public static void Load()
+        //{
+        //    try {
+        //        using (var input = File.OpenText("eqemupatcher.yml"))
+        //        {
+        //            var deserializerBuilder = new DeserializerBuilder().WithNamingConvention(new CamelCaseNamingConvention());
 
-                    var deserializer = deserializerBuilder.Build();
+        //            var deserializer = deserializerBuilder.Build();
 
-                    instance = deserializer.Deserialize<IniLibrary>(input);
-                }
+        //            instance = deserializer.Deserialize<IniLibrary>(input);
+        //        }
                                 
-                if (instance == null) {
-                    ResetDefaults();
-                    Save();
-                }
-            } catch (System.IO.FileNotFoundException) {                
-                ResetDefaults();
-                Save();
-            }
-        }
+        //        if (instance == null) {
+        //            ResetDefaults();
+        //            Save();
+        //        }
+        //    } catch (System.IO.FileNotFoundException) {                
+        //        ResetDefaults();
+        //        Save();
+        //    }
+        //}
 
-        public static void ResetDefaults()
-        {
-            instance = new IniLibrary();
-            instance.AutoPatch = (MainForm.defaultAutoPatch) ? "true":  "false";
-            instance.AutoPlay = (MainForm.defaultAutoPlay) ? "true" : "false";
-        }
+        //public static void ResetDefaults()
+        //{
+        //    instance = new IniLibrary();
+        //    instance.AutoPatch = (MainForm.defaultAutoPatch) ? "true":  "false";
+        //    instance.AutoPlay = (MainForm.defaultAutoPlay) ? "true" : "false";
+        //}
     }
 }
