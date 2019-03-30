@@ -57,6 +57,7 @@ namespace EQEmu_Patcher
 
         private void Init()
         {
+            //change this to the directory of where the client folder is. if in same folder, don't need the line, if in subfolder specify here.
             _currentDirectory = Path.Combine(_currentDirectory, "everquest_rof2");
 
             System.IO.DirectoryInfo baseDir = new DirectoryInfo(_currentDirectory);
